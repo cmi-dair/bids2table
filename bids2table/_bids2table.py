@@ -23,7 +23,6 @@ def bids2table(
     overwrite: bool = False,
     workers: Optional[int] = None,
     worker_id: Optional[int] = None,
-    max_failures: Optional[int] = 0,
     return_df: bool = True,
 ) -> Optional[pd.DataFrame]:
     """
@@ -42,7 +41,6 @@ def bids2table(
         worker_id: optional worker ID to use when scheduling parallel tasks externally.
             Specifying the number of workers is required in this case. Incompatible with
             overwrite.
-        max_failures: number of extract failures to tolerate.
         return_df: whether to return the dataframe or just build the persistent index.
 
     Returns:
@@ -66,6 +64,8 @@ def bids2table(
 
     if output is None:
         output = root / "index.b2t"
+    else:
+        output = Path(output)
 
     stale = overwrite or incremental or worker_id is not None
     if output.exists() and not stale:
@@ -79,11 +79,7 @@ def bids2table(
 
     if not persistent:
         logging.info("Building index in memory")
-        df = build_table(
-            source=source,
-            extract=extract_bids_subdir,
-            max_failures=max_failures,
-        )
+        df = build_table(source=source, extract=extract_bids_subdir)
         df = flat_to_multi_columns(df)
         return df
 
@@ -96,7 +92,6 @@ def bids2table(
         overwrite=overwrite,
         workers=workers,
         worker_id=worker_id,
-        max_failures=max_failures,
     )
     df = load_index(output) if return_df else None
     return df
